@@ -2,8 +2,8 @@
 
 require 'optparse'
 
-vopts = %w(ca cert dh extra-certs key pkcs12 secret crl-verify
-  http-proxy-user-pass tls-auth tls-crypt)
+vopts = %w[ca cert dh extra-certs key pkcs12 secret crl-verify
+           http-proxy-user-pass tls-auth tls-crypt]
 
 opt = {}
 OptionParser.new do |opts|
@@ -17,25 +17,26 @@ abort('need conf') unless opt[:conf]
 inl = {}
 File.readlines(opt[:conf]).each do |l|
   next if /^($|#)/ =~ l
-  k, a, suff = l.split
+
+  k, v, suff = l.split
   puts "key-direction #{suff}" if k == 'tls-auth' && suff
   if vopts.include?(k)
-    inl[k] = if a.include?('/')
-               File.read a
-             else
-               File.read "#{File.dirname(opt[:conf])}/#{a}"
-             end
+    inl[k] = v
   else
     puts l
   end
 end
 
+opt.each_pair { |k, v| inl[k] = v unless k == :conf }
+
 inl.each_pair do |k, v|
-  c = if opt[k]
-        File.exist?(opt[k]) ? File.read(opt[k]) : "#{opt[k]}\n"
+  conf_dir = File.dirname opt[:conf]
+  c = if File.exist?(v)
+        File.read v
+      elsif File.exist?("#{conf_dir}/#{v}")
+        File.read "#{conf_dir}/#{v}"
       else
-        c = v
+        "#{v}\n"
       end
   puts "<#{k}>\n#{c}</#{k}>"
 end
-
